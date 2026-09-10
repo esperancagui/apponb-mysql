@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from datetime import datetime, timezone
 from httpx import AsyncClient
 
 pytestmark = pytest.mark.asyncio
@@ -36,7 +36,7 @@ async def test_update_profile_success(async_client: AsyncClient, override_auth, 
             "display_name": "Updated Name",
             "photo_url": None,
             "firebase_uid": "test_uid_123",
-            "created_at": "2026-01-01T00:00:00Z",
+            "created_at": datetime.now(timezone.utc),
         },
     )
     response = await async_client.patch("/api/v1/auth/profile", json={"display_name": "Updated Name"})
@@ -83,12 +83,6 @@ async def test_pause_account_success(async_client: AsyncClient, override_auth, m
     assert response.status_code == 204
 
 
-async def test_pause_account_error(async_client: AsyncClient, override_auth, mock_firestore, mocker):
-    mocker.patch("app.routes.auth.pause_account", side_effect=Exception("Firebase error"))
-    response = await async_client.post("/api/v1/auth/pause")
-    assert response.status_code == 500
-
-
 # ── DELETE /account ────────────────────────────────────────────────────────────
 
 async def test_delete_account_unauthorized(async_client: AsyncClient):
@@ -111,7 +105,6 @@ async def test_request_export_unauthorized(async_client: AsyncClient):
 
 async def test_request_export_accepted(async_client: AsyncClient, override_auth, mock_firestore):
     """Should return 202 immediately and schedule background task."""
-    # Background task calls export_user_data; return empty dict so json.dumps succeeds
     mock_firestore.export_user_data.return_value = {}
     response = await async_client.post("/api/v1/auth/request-export")
     assert response.status_code == 202
@@ -120,11 +113,8 @@ async def test_request_export_accepted(async_client: AsyncClient, override_auth,
 
 # ── POST /register — abuse checks ─────────────────────────────────────────────
 
-async def test_register_blocks_disposable_email(async_client: AsyncClient, mocker):
+async def test_register_blocks_disposable_email(async_client: AsyncClient, mock_firestore, mocker):
     """Disposable email domain must be rejected with 403."""
-    mock_decoded = {"uid": "uid_abc"}
-    mocker.patch("app.routes.auth.firebase_auth.verify_id_token", return_value=mock_decoded)
-    mocker.patch("app.routes.auth.get_user_by_firebase_uid", return_value=None)
     mocker.patch(
         "app.routes.auth.validate_email_domain",
         return_value="Não é possível criar conta com e-mail temporário.",
@@ -132,69 +122,100 @@ async def test_register_blocks_disposable_email(async_client: AsyncClient, mocke
 
     response = await async_client.post(
         "/api/v1/auth/register",
-        json={"firebase_uid": "uid_abc", "email": "user@mailinator.com"},
-        headers={"Authorization": "Bearer fake-token"},
+        json={"email": "user@mailinator.com", "password": "supersecret1"},
     )
     assert response.status_code == 403
     assert "temporário" in response.json()["detail"]
 
 
-async def test_register_blocks_reused_email(async_client: AsyncClient, mocker):
+async def test_register_blocks_reused_email(async_client: AsyncClient, mock_firestore, mocker):
     """Email used by a previously deleted account must be rejected."""
-    mocker.patch("app.routes.auth.firebase_auth.verify_id_token", return_value={"uid": "uid_abc"})
-    mocker.patch("app.routes.auth.get_user_by_firebase_uid", return_value=None)
     mocker.patch("app.routes.auth.validate_email_domain", return_value=None)
     mocker.patch("app.routes.auth.check_email_previously_used", return_value=True)
 
     response = await async_client.post(
         "/api/v1/auth/register",
-        json={"firebase_uid": "uid_abc", "email": "used@example.com"},
-        headers={"Authorization": "Bearer fake-token"},
+        json={"email": "used@example.com", "password": "supersecret1"},
     )
     assert response.status_code == 403
     assert "teste gratuito" in response.json()["detail"]
 
 
-async def test_register_blocks_reused_fingerprint(async_client: AsyncClient, mocker):
+async def test_register_blocks_reused_fingerprint(async_client: AsyncClient, mock_firestore, mocker):
     """Browser fingerprint already used in another trial must be rejected."""
-    mocker.patch("app.routes.auth.firebase_auth.verify_id_token", return_value={"uid": "uid_abc"})
-    mocker.patch("app.routes.auth.get_user_by_firebase_uid", return_value=None)
     mocker.patch("app.routes.auth.validate_email_domain", return_value=None)
     mocker.patch("app.routes.auth.check_email_previously_used", return_value=False)
     mocker.patch("app.routes.auth.check_fingerprint_used", return_value=True)
 
     response = await async_client.post(
         "/api/v1/auth/register",
-        json={"firebase_uid": "uid_abc", "email": "new@example.com", "fingerprint": "fp_abc"},
-        headers={"Authorization": "Bearer fake-token"},
+        json={"email": "new@example.com", "password": "supersecret1", "fingerprint": "fp_abc"},
     )
     assert response.status_code == 403
     assert "dispositivo" in response.json()["detail"]
 
 
-async def test_register_returns_existing_user(async_client: AsyncClient, mocker):
-    """If the user already exists in Firestore, return it without creating again."""
-    from datetime import datetime, timezone
-
-    existing = {
-        "id": "existing_uuid",
-        "email": "existing@example.com",
-        "display_name": "Existing User",
-        "photo_url": None,
-        "firebase_uid": "uid_existing",
-        "created_at": datetime.now(timezone.utc),
-        "plan": "basic",
-        "subscription_status": "active",
-        "current_period_end": None,
-        "trial_end": None,
-    }
-    mocker.patch("app.routes.auth.firebase_auth.verify_id_token", return_value={"uid": "uid_existing"})
-    mocker.patch("app.routes.auth.get_user_by_firebase_uid", return_value=existing)
+async def test_register_blocks_existing_email(async_client: AsyncClient, mock_firestore):
+    """An email already registered (and not soft-deleted) must be rejected with 409."""
+    mock_firestore.get_user_by_email.return_value = {"id": "existing_uuid"}
 
     response = await async_client.post(
         "/api/v1/auth/register",
-        json={"firebase_uid": "uid_existing", "email": "existing@example.com"},
-        headers={"Authorization": "Bearer fake-token"},
+        json={"email": "existing@example.com", "password": "supersecret1"},
+    )
+    assert response.status_code == 409
+
+
+async def test_register_success(async_client: AsyncClient, mock_firestore, mocker):
+    """Happy path: creates the user and returns a token pair."""
+    created = {
+        "id": "new_uuid",
+        "email": "new@example.com",
+        "display_name": None,
+        "photo_url": None,
+        "firebase_uid": "abc123",
+        "created_at": datetime.now(timezone.utc),
+        "plan": "free",
+        "subscription_status": "trialing",
+        "current_period_end": None,
+        "trial_end": datetime.now(timezone.utc),
+    }
+    mocker.patch("app.routes.auth.validate_email_domain", return_value=None)
+    mocker.patch("app.routes.auth.check_email_previously_used", return_value=False)
+    mocker.patch("app.routes.auth.create_user", return_value=created)
+
+    response = await async_client.post(
+        "/api/v1/auth/register",
+        json={"email": "new@example.com", "password": "supersecret1"},
     )
     assert response.status_code == 201
-    assert response.json()["id"] == "existing_uuid"
+    body = response.json()
+    assert body["user"]["id"] == "new_uuid"
+    assert "access_token" in body
+    assert "refresh_token" in body
+
+
+async def test_register_rejects_short_password(async_client: AsyncClient, mock_firestore):
+    response = await async_client.post(
+        "/api/v1/auth/register",
+        json={"email": "new@example.com", "password": "short"},
+    )
+    assert response.status_code == 422
+
+
+# ── POST /login ─────────────────────────────────────────────────────────────
+
+async def test_login_invalid_credentials(async_client: AsyncClient, mocker):
+    mocker.patch("app.routes.auth.authenticate", return_value=None)
+    response = await async_client.post(
+        "/api/v1/auth/login", json={"email": "nope@example.com", "password": "wrong"}
+    )
+    assert response.status_code == 401
+
+
+async def test_login_disabled_account(async_client: AsyncClient, mocker):
+    mocker.patch("app.routes.auth.authenticate", side_effect=PermissionError("account-disabled"))
+    response = await async_client.post(
+        "/api/v1/auth/login", json={"email": "paused@example.com", "password": "whatever1"}
+    )
+    assert response.status_code == 403

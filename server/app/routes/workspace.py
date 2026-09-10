@@ -2,12 +2,10 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 
-from firebase_admin import auth as firebase_auth_admin
-
 from app.core.auth import get_current_user
 from app.core.permissions import require_workspace_owner, require_workspace_member
 from app.core.plan_limits import check_workspace_limit, check_member_limit
-from app.services import firestore_db
+from app.services import db as firestore_db
 from app.sockets import broadcaster
 
 router = APIRouter()
@@ -112,23 +110,23 @@ async def invite_member(
         raise HTTPException(
             status_code=400, detail=f"Papel inválido. Use: {', '.join(VALID_ROLES)}"
         )
-    try:
-        fb_user = firebase_auth_admin.get_user_by_email(body.email)
-    except firebase_auth_admin.UserNotFoundError:
+    target_user = await firestore_db.get_user_by_email(body.email)
+    if not target_user:
         raise HTTPException(
             status_code=404, detail="Usuário não encontrado com este email"
         )
+    invited_uid = target_user["firebase_uid"]
     existing_members = await firestore_db.get_workspace_members(workspace_id)
-    if any(m["uid"] == fb_user.uid for m in existing_members):
+    if any(m["uid"] == invited_uid for m in existing_members):
         raise HTTPException(
             status_code=409, detail="Este usuário já é membro do workspace"
         )
-    await firestore_db.add_workspace_member(workspace_id, fb_user.uid, body.role)
+    await firestore_db.add_workspace_member(workspace_id, invited_uid, body.role)
     try:
-        await broadcaster.join_workspace_room(fb_user.uid, workspace_id)
+        await broadcaster.join_workspace_room(invited_uid, workspace_id)
     except Exception:
         pass
-    return {"uid": fb_user.uid, "email": fb_user.email, "role": body.role}
+    return {"uid": invited_uid, "email": target_user["email"], "role": body.role}
 
 
 @router.patch("/workspaces/{workspace_id}/members/{uid}")

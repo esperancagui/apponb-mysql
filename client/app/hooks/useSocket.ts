@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Socket } from "socket.io-client";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/app/lib/firebase";
+import { onAuthStateChanged, auth } from "@/app/lib/authClient";
 import { getSocket } from "@/app/lib/socket";
 
 export function useSocket(): Socket | null {
@@ -12,7 +11,7 @@ export function useSocket(): Socket | null {
   useEffect(() => {
     let cancelled = false;
 
-    // Wait for Firebase to restore auth state before attempting connection
+    // Wait for the auth client to restore session state before attempting connection
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user || cancelled) return;
       getSocket()

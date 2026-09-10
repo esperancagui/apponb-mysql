@@ -10,10 +10,12 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python)](https://www.python.org/)
-[![Firebase](https://img.shields.io/badge/Firebase-Auth%20%2B%20Firestore-FFCA28?logo=firebase)](https://firebase.google.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?logo=mysql)](https://www.mysql.com/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docs.docker.com/compose/)
 
 Crie formulários de briefing profissionais, personalize a aparência para cada cliente e receba respostas organizadas em uma inbox inteligente — tudo com uma experiência visual premium.
+
+> **Esta é a versão de testes com MySQL.** Mesmo produto, mesma UI, mesmos contratos de API — mas Firebase (Auth, Firestore, Cloud Storage) foi substituído por MySQL, JWT local e MinIO, então o stack inteiro sobe offline com `docker compose up`, sem projeto externo pra configurar.
 
 </div>
 
@@ -90,7 +92,7 @@ O **onb.** foi criado para profissionais de design, marketing e comunicação qu
 - **Link compartilhável** (`/f/[slug]`) com aparência totalmente personalizada
 - **Renderização responsiva** que se adapta a mobile, tablet e desktop
 - **Tela de boas-vindas** com logo, título e mensagem customizada
-- **Upload de arquivos** com preview visual diretamente para Cloud Storage
+- **Upload de arquivos** com preview visual, enviados via API para o MinIO
 - **Tela de agradecimento** com links sociais (WhatsApp, Instagram, Website)
 - **Badge premium "onb."** com animação glassmorphism
 
@@ -114,15 +116,14 @@ O **onb.** foi criado para profissionais de design, marketing e comunicação qu
 
 ### 💳 Billing & Planos
 
-- **Integração Stripe:** Checkout, gerenciamento de assinatura e portal do cliente via Stripe
+- **Checkout local (stub):** Nesta versão de testes não há Stripe — `POST /api/billing/checkout` atualiza o plano diretamente no banco
 - **Limites por plano:** Controle de formulários ativos, respostas mensais, membros e armazenamento aplicados automaticamente no servidor (`plan_limits.py`)
 - **Trial de 15 dias:** Acesso completo sem cartão de crédito, com countdown visível
 - **Upgrade Banner:** Banner contextual exibido quando o usuário atinge limites do plano
-- **Webhook Stripe:** Sincronização automática de status de assinatura (`/webhooks/stripe`)
 
 ### 🔔 Notificações em Tempo Real
 
-- **Socket.IO:** Conexão persistente autenticada com Firebase ID Token
+- **Socket.IO:** Conexão persistente autenticada com o token JWT local
 - **Rooms por contexto:** Cada usuário entra nos rooms `user:{uid}` e `workspace:{id}` de todos os seus workspaces
 - **Central de Notificações:** Painel lateral com agrupamento por período (Hoje, Ontem, Anteriores)
 - **Tipos de notificação:** Nova resposta, análise de IA concluída, alto risco, status atualizado, convite recebido, limite de plano atingido
@@ -139,11 +140,11 @@ O **onb.** foi criado para profissionais de design, marketing e comunicação qu
 
 ### 🔒 Segurança e Anti-abuso
 
-- **Autenticação:** Firebase Auth (E-mail/Senha e Google OAuth) com tokens JWT validados no backend
-- **Blacklist de tokens:** JTI blacklistado no Firestore após logout para impedir reutilização
+- **Autenticação:** JWT próprio (E-mail/Senha) emitido e validado pelo backend — login com Google não está disponível nesta versão
+- **Blacklist de tokens:** JTI blacklistado no MySQL após logout para impedir reutilização
 - **Fingerprint de dispositivo:** `@fingerprintjs/fingerprintjs` detecta reutilização do mesmo navegador para novo trial
 - **Validação de domínio de e-mail:** Blocklist de ~400 provedores descartáveis + verificação de MX/A via DNS (timeout 5s)
-- **Soft delete:** Conta deletada mantém e-mail no Firestore para bloquear novo trial com o mesmo e-mail
+- **Soft delete:** Conta deletada mantém e-mail no MySQL para bloquear novo trial com o mesmo e-mail
 - **Aceite de termos:** Obrigatório na tela de cadastro antes de qualquer ação (e-mail ou Google)
 - **Cookie Banner:** Aviso de consentimento de cookies em conformidade com LGPD
 - **Permissões por workspace:** Roles (owner, admin, member, viewer) com controle granular
@@ -152,7 +153,7 @@ O **onb.** foi criado para profissionais de design, marketing e comunicação qu
 
 - **Modal de crop reutilizável** para foto de perfil e logo de workspace
 - **Crop circular** com pan e zoom via mouse/touch
-- **Preview em tempo real** antes do upload para Firebase Cloud Storage
+- **Preview em tempo real** antes do upload para o storage (MinIO)
 
 ### ⌨️ Command Palette (⌘K)
 
@@ -195,7 +196,7 @@ O **onb.** foi criado para profissionais de design, marketing e comunicação qu
 | **Command Palette** | cmdk                             |
 | **Toasts**          | Sonner                           |
 | **Datas**           | date-fns (pt-BR)                 |
-| **Auth**            | Firebase Auth (client SDK)       |
+| **Auth**            | JWT próprio (`authClient.ts`)    |
 | **Real-time**       | socket.io-client                 |
 | **Fingerprint**     | @fingerprintjs/fingerprintjs     |
 
@@ -204,15 +205,15 @@ O **onb.** foi criado para profissionais de design, marketing e comunicação qu
 | Camada             | Tecnologia                       |
 | ------------------ | -------------------------------- |
 | **Framework**      | FastAPI (Python 3.13)            |
-| **Banco de Dados** | Firebase Firestore               |
-| **Autenticação**   | Firebase Admin SDK (JWT)         |
-| **Storage**        | Firebase Cloud Storage           |
-| **IA**             | DeepSeek (API compatível OpenAI) |
+| **Banco de Dados** | MySQL 8.4 (aiomysql)              |
+| **Autenticação**   | JWT próprio + scrypt             |
+| **Storage**        | MinIO (S3-compatível)            |
+| **IA**             | DeepSeek / Gemini (API compatível OpenAI) |
 | **E-mail**         | Resend                           |
 | **PDF**            | WeasyPrint                       |
 | **Real-time**      | Socket.IO (python-socketio)      |
 | **Validação**      | Pydantic v2                      |
-| **Billing**        | Stripe                           |
+| **Billing**        | Stub local (sem Stripe)          |
 | **DNS**            | dnspython (validação de MX)      |
 | **Gerenciador**    | uv                               |
 
@@ -221,9 +222,9 @@ O **onb.** foi criado para profissionais de design, marketing e comunicação qu
 | Camada            | Tecnologia              |
 | ----------------- | ----------------------- |
 | **Containers**    | Docker + Docker Compose |
-| **Auth Provider** | Firebase Authentication |
-| **Database**      | Cloud Firestore         |
-| **File Storage**  | Firebase Cloud Storage  |
+| **Auth Provider** | JWT próprio             |
+| **Database**      | MySQL                   |
+| **File Storage**  | MinIO                   |
 
 ---
 
@@ -231,25 +232,33 @@ O **onb.** foi criado para profissionais de design, marketing e comunicação qu
 
 ### Pré-requisitos
 
-- **Docker** e **Docker Compose** (recomendado)
-- **Node.js** 18.17+ (para dev local do client)
-- **Python** 3.13+ e **uv** (para dev local do server)
-- Projeto Firebase configurado com Auth, Firestore e Cloud Storage
+- **Docker** e **Docker Compose** (único pré-requisito real — MySQL, Redis e MinIO sobem nos containers)
+- **Node.js** 18.17+ (só para dev local do client, fora do Docker)
+- **Python** 3.13+ e **uv** (só para dev local do server, fora do Docker)
+
+Nenhum projeto externo é necessário — nem Firebase, nem conta AWS. `DEEPSEEK_API_KEY`/`GEMINI_API_KEY`
+e `RESEND_API_KEY` são opcionais: sem eles, a análise de IA e o envio de e-mails simplesmente não
+disparam, o resto da aplicação funciona normalmente.
 
 ### Com Docker Compose (recomendado)
 
 ```bash
 # 1. Clone o repositório
 git clone <url-do-repositorio>
-cd apponb
+cd apponb-mysql
 
 # 2. Configure as variáveis de ambiente
 cp .env.example .env
-# Edite o .env com suas credenciais Firebase, Stripe, Resend, etc.
+# Gere JWT_SECRET e INTERNAL_SECRET (ex: `openssl rand -hex 32`) e escolha uma MYSQL_PASSWORD.
+# DEEPSEEK_API_KEY/GEMINI_API_KEY/RESEND_API_KEY são opcionais.
 
-# 3. Inicie os serviços
+# 3. Inicie os serviços (client, server, worker, mysql, redis, minio)
 docker compose -f docker-compose.dev.yml up --build
 ```
+
+O schema do MySQL é carregado uma única vez de `server/schema.sql` na primeira subida do container
+`mysql`. O console do MinIO fica em **[http://localhost:9001](http://localhost:9001)** (login padrão
+`minioadmin` / `minioadmin`).
 
 O client estará em **[http://localhost:3000](http://localhost:3000)** e o server em **[http://localhost:8000](http://localhost:8000)**.
 
@@ -280,28 +289,31 @@ uv run uvicorn main:socket_app --reload --port 8000
 
 ### Variáveis de Ambiente
 
-Crie um arquivo `.env` na raiz do projeto (usado pelo Docker Compose e pelo server):
+Crie um arquivo `.env` na raiz do projeto (usado pelo Docker Compose e pelo server) — veja
+`.env.example` para a lista completa e comentada:
 
 ```env
-# ── Client (prefixo NEXT_PUBLIC_ expõe ao browser) ──────────────────────────
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_API_URL=http://localhost:8000
 
-# ── Server ────────────────────────────────────────────────────────────────────
-FIREBASE_CREDENTIALS_PATH=./firebase-credentials.json
-CORS_ORIGINS=http://localhost:3000
+# ── MySQL ────────────────────────────────────────────────────────────────────
+MYSQL_PASSWORD=
 
-# ── Serviços externos ─────────────────────────────────────────────────────────
-OPENAI_API_KEY=           # ou chave DeepSeek (API compatível)
+# ── Auth (JWT) ─────────────────────────────────────────────────────────────────
+JWT_SECRET=
+
+# ── MinIO (storage S3-compatível) ───────────────────────────────────────────
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin
+S3_PUBLIC_URL=http://localhost:9000
+
+# ── Serviços externos (opcionais) ─────────────────────────────────────────────
+DEEPSEEK_API_KEY=         # análise de IA (plano Pro)
+GEMINI_API_KEY=           # análise de IA multimodal (plano Agency)
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=        # ex: "onb. <noreply@seudominio.com>"
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=    # segredo do webhook Stripe (para /webhooks/stripe)
+
+# ── Worker ↔ API (Socket.IO) ──────────────────────────────────────────────────
+INTERNAL_SECRET=
 ```
 
 ---
@@ -358,7 +370,7 @@ apponb/
 │       │       ├── ImageCropModal.tsx    # Modal reutilizável de crop de imagem
 │       │       └── UpgradeBanner.tsx     # Banner de upgrade de plano
 │       ├── contexts/
-│       │   ├── AuthContext.tsx           # Autenticação Firebase + registro com fingerprint
+│       │   ├── AuthContext.tsx           # Autenticação JWT local + registro com fingerprint
 │       │   ├── WorkspaceContext.tsx      # Workspace ativo e alternância
 │       │   ├── NotificationContext.tsx   # Notificações via Socket.IO
 │       │   └── UpgradeModalContext.tsx   # Modal de upgrade de plano
@@ -378,7 +390,7 @@ apponb/
 │       ├── forgot-password/             # Recuperação de senha
 │       └── lib/
 │           ├── types.ts                 # Tipos TypeScript do domínio
-│           ├── api.ts                   # HTTP client (anexa Firebase ID Token)
+│           ├── api.ts                   # HTTP client (anexa token JWT local)
 │           └── services/
 │               ├── formService.ts         # Formulários
 │               ├── templateService.ts     # Templates
@@ -388,7 +400,7 @@ apponb/
 │               ├── folderService.ts       # Pastas
 │               ├── inviteService.ts       # Convites
 │               ├── userService.ts         # Perfil, preferências e exportação de dados
-│               ├── billingService.ts      # Assinatura e portal Stripe
+│               ├── billingService.ts      # Assinatura (stub local, sem Stripe)
 │               ├── storageService.ts      # Upload de imagens (Cloud Storage)
 │               └── fingerprintService.ts  # Fingerprint de dispositivo (anti-abuso)
 │
@@ -397,7 +409,7 @@ apponb/
 │   ├── app/
 │   │   ├── core/
 │   │   │   ├── auth.py                  # Dependência get_current_user (verifica JWT)
-│   │   │   ├── firebase.py              # Inicialização firebase-admin
+│   │   │   ├── security.py              # JWT (emissão/verificação) + hashing de senha
 │   │   │   ├── permissions.py           # require_form_owner, require_workspace_owner
 │   │   │   ├── plan_limits.py           # Limites por plano e helpers de verificação
 │   │   │   └── disposable_domains.py    # Blocklist + validação DNS de domínios de e-mail
@@ -411,8 +423,7 @@ apponb/
 │   │   │   ├── workspace.py             # Workspaces e membros
 │   │   │   ├── invite.py                # Sistema de convites + e-mail
 │   │   │   ├── folder.py                # Pastas
-│   │   │   ├── billing.py               # Checkout e portal Stripe
-│   │   │   └── webhooks.py              # Webhook Stripe (sincroniza assinatura)
+│   │   │   ├── billing.py               # Checkout stub (sem Stripe)
 │   │   ├── services/
 │   │   │   ├── firestore_db.py          # Todas as operações Firestore (async)
 │   │   │   ├── auth_service.py          # CRUD de usuário, fingerprint, blacklist de token
@@ -421,7 +432,7 @@ apponb/
 │   │   │   └── pdf_service.py           # Geração de PDFs (WeasyPrint)
 │   │   ├── schemas/                   # Modelos Pydantic v2 (In/Out por domínio)
 │   │   ├── sockets/
-│   │   │   ├── events.py                # Handlers connect/disconnect (auth Firebase)
+│   │   │   ├── events.py                # Handlers connect/disconnect (JWT local)
 │   │   │   └── broadcaster.py           # Helpers para emitir eventos por room
 │   │   └── templates/                 # Templates Jinja2 (relatório PDF)
 │   ├── tests/
@@ -432,7 +443,6 @@ apponb/
 │   └── Dockerfile.dev
 │
 ├── docker-compose.dev.yml           # Docker Compose para desenvolvimento
-├── firebase-credentials.json        # Credenciais Firebase (não commitado)
 ├── storage.rules                    # Regras de segurança do Cloud Storage
 ├── .env.example                     # Variáveis de ambiente de exemplo
 └── README.md
@@ -446,17 +456,17 @@ apponb/
 
 ```
 ┌──────────────────┐       ┌──────────────────┐       ┌──────────────────┐
-│   Next.js (3000) │──────▶│  FastAPI (8000)   │──────▶│    Firestore     │
-│   React / UI     │  REST │  Python Backend   │       │  Cloud Storage   │
-│   Firebase Auth  │◀──────│  JWT Validation   │       │  Firebase Auth   │
-│   Socket.IO CLI  │◀─────▶│  Socket.IO Server │       └──────────────────┘
+│   Next.js (3000) │──────▶│  FastAPI (8000)   │──────▶│      MySQL       │
+│   React / UI     │  REST │  Python Backend   │       │      MinIO       │
+│   JWT local      │◀──────│  JWT Validation   │       └──────────────────┘
+│   Socket.IO CLI  │◀─────▶│  Socket.IO Server │
 └──────────────────┘  WS   └──────┬───────────┘
                                   │
                      ┌────────────┼────────────┐
                      │            │            │
                 ┌────▼─────┐ ┌───▼────┐ ┌─────▼──────┐
-                │  DeepSeek │ │ Resend │ │   Stripe   │
-                │  AI / LLM │ │ E-mail │ │  Billing   │
+                │ DeepSeek/ │ │ Resend │ │    ARQ     │
+                │  Gemini   │ │ E-mail │ │  (Redis)   │
                 └──────────┘ └────────┘ └────────────┘
 ```
 
@@ -466,9 +476,9 @@ apponb/
 Componentes React → Services (HTTP/WS) → FastAPI Routes → Firestore / Cloud Storage
 ```
 
-- Todas as rotas protegidas usam `Depends(get_current_user)` que retorna um dict com `id` (UUID) e `firebase_uid`
+- Todas as rotas protegidas usam `Depends(get_current_user)` que retorna um dict com `id` (UUID) e `firebase_uid` (nome mantido da época do Firebase — hoje é só um id opaco gerado localmente)
 - Verificações de ownership estão centralizadas em `app/core/permissions.py`
-- `firestore_db.py` é async; `auth_service.py` é sync (executado via `asyncio.to_thread` quando necessário)
+- `app/services/db.py` (MySQL) e `auth_service.py` são ambos async
 - Uma background task em `main.py` limpa drafts inativos e tokens expirados a cada 6 horas
 
 ### Padrão de Navegação
@@ -502,7 +512,7 @@ O **onb.** implementa os seguintes recursos para conformidade com a Lei Geral de
 | **Art. 8 — Cookies** | Cookie Banner com aviso de consentimento no layout raiz |
 | **Art. 18, II — Acesso** | Exportação de todos os dados pessoais via `POST /api/v1/auth/request-export` |
 | **Art. 18, V — Portabilidade** | Exportação em JSON (completo) e CSV (respostas), enviados por e-mail |
-| **Art. 18, VI — Exclusão** | Exclusão de conta com remoção de dados pessoais do Firestore |
+| **Art. 18, VI — Exclusão** | Exclusão de conta com remoção de dados pessoais do MySQL |
 | **Anti-abuso pós-exclusão** | Soft delete mantém e-mail com flag `deleted: True` para bloquear novo trial |
 
 ### Fluxo de Exportação de Dados
@@ -544,4 +554,4 @@ docker build -f Dockerfile.dev -t onb-server .
 docker run -p 8000:8000 --env-file .env onb-server
 ```
 
-> Lembre-se de configurar o webhook do Stripe apontando para `https://seu-dominio.com/webhooks/stripe` e adicionar o `STRIPE_WEBHOOK_SECRET` nas variáveis de ambiente.
+> Esta versão de testes não usa Stripe — não há webhook para configurar. Lembre-se apenas de apontar `DATABASE_URL`, `JWT_SECRET` e as variáveis do MinIO/S3 para instâncias reais em produção.

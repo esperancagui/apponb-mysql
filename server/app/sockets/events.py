@@ -2,8 +2,8 @@ import logging
 from collections import defaultdict
 
 from app.sockets import sio
-from app.core.firebase import firebase_auth
-from app.services import firestore_db
+from app.core.security import decode_token
+from app.services import db as firestore_db
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +26,9 @@ def register_handlers() -> None:
             logger.warning("Socket rejected — no token (sid=%s)", sid)
             return False
         try:
-            decoded = firebase_auth.verify_id_token(token)
+            decoded = decode_token(token)
             uid = decoded["uid"]
-        except Exception as e:
+        except (ValueError, KeyError) as e:
             logger.warning("Socket auth failed (sid=%s): %s", sid, e)
             return False
 

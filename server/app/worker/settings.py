@@ -5,6 +5,7 @@ ARQ WorkerSettings — run with: uv run arq app.worker.settings.WorkerSettings
 import os
 from urllib.parse import urlparse
 from arq.connections import RedisSettings
+from app.db.pool import init_pool, close_pool
 from app.worker.tasks import run_analysis_job
 
 
@@ -27,8 +28,18 @@ def _build_redis_settings() -> RedisSettings:
     )
 
 
+async def _on_startup(ctx: dict) -> None:
+    await init_pool()
+
+
+async def _on_shutdown(ctx: dict) -> None:
+    await close_pool()
+
+
 class WorkerSettings:
     functions = [run_analysis_job]
+    on_startup = _on_startup
+    on_shutdown = _on_shutdown
     redis_settings = _build_redis_settings()
     max_jobs = 10
     job_timeout = 300   # 5 minutes

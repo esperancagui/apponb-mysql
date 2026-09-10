@@ -11,7 +11,7 @@ import logging
 
 from app.core.auth import get_current_user
 from app.core.permissions import require_submission_access
-from app.services import firestore_db
+from app.services import db as firestore_db
 from app.services import insight_service
 from app.services.pdf_service import generate_report_pdf
 from app.schemas.insight import InsightOut

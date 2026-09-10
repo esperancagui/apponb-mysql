@@ -6,6 +6,24 @@ import { ApiResponse } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
+/** Attaches the current access token, browser-only. `forceRefresh` retries
+ * once with a freshly-refreshed token after a 401 (the local JWT has no
+ * SDK-managed auto-refresh the way Firebase's did). */
+async function withAuthHeader(
+  headers: Record<string, string>,
+  forceRefresh = false,
+): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    const { auth } = await import("./authClient");
+    await auth.authStateReady();
+    const token = await auth.currentUser?.getIdToken(forceRefresh);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  } catch {
+    // Not authenticated — proceed without token
+  }
+}
+
 /** Generic request handler */
 async function request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   const url = `${API_URL}${path}`;
@@ -14,25 +32,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<ApiR
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
-
-  // Only attach the token in browser environments (Firebase SDK is client-only)
-  if (typeof window !== "undefined") {
-    try {
-      const { auth } = await import("./firebase");
-      // Wait for Firebase to restore auth state after a hard refresh
-      await auth.authStateReady();
-      const token = await auth.currentUser?.getIdToken();
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-    } catch {
-      // Not authenticated — proceed without token
-    }
-  }
+  await withAuthHeader(headers);
 
   try {
-    const res = await fetch(url, {
-      ...options,
-      headers,
-    });
+    let res = await fetch(url, { ...options, headers });
+
+    if (res.status === 401 && typeof window !== "undefined") {
+      await withAuthHeader(headers, true);
+      res = await fetch(url, { ...options, headers });
+    }
 
     if (!res.ok) {
       const errorBody = await res.json().catch(() => ({}));

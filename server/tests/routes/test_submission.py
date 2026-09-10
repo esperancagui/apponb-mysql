@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import AsyncMock
 from httpx import AsyncClient
 
 pytestmark = pytest.mark.asyncio
@@ -6,7 +7,7 @@ pytestmark = pytest.mark.asyncio
 
 # ── POST /submissions (public) ────────────────────────────────────────────────
 
-async def test_create_submission_no_auth_required(async_client: AsyncClient, mock_firestore):
+async def test_create_submission_no_auth_required(async_client: AsyncClient, mock_firestore, mocker):
     """Anyone can submit a form (no auth required)."""
     mock_firestore.get_form.return_value = {
         "id": "form_123",
@@ -21,6 +22,8 @@ async def test_create_submission_no_auth_required(async_client: AsyncClient, moc
         "status": "new",
         "data": {},
     }
+    mock_pool = AsyncMock()
+    mocker.patch("app.routes.submission.get_pool", return_value=mock_pool)
 
     response = await async_client.post(
         "/api/submissions",

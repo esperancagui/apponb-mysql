@@ -3,7 +3,7 @@ from typing import List, Dict, Optional
 
 from app.core.auth import get_current_user
 from app.core.permissions import require_submission_access, _workspace_role
-from app.services import firestore_db
+from app.services import db as firestore_db
 from app.schemas.submission import SubmissionOut, SubmissionStatusUpdate
 from app.sockets import broadcaster
 

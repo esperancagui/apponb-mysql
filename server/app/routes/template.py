@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from app.core.auth import get_current_user
 from app.core.permissions import require_template_owner
-from app.services import firestore_db
+from app.services import db as firestore_db
 from app.schemas.template import (
     TemplateCreate,
     TemplateUpdate,

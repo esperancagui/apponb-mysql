@@ -15,7 +15,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import HTTPException
 
-from app.services import firestore_db
+from app.services import db as firestore_db
 
 
 # ── Limit definitions ─────────────────────────────────────────────────────────

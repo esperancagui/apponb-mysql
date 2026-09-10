@@ -1,17 +1,12 @@
 /**
- * Storage Service — Firebase Storage upload/delete helpers.
- *
- * Uploads images directly from the client to Firebase Storage
- * and returns public download URLs.
+ * Storage Service — upload/delete helpers backed by the API's MinIO-backed
+ * upload endpoints (`POST /api/uploads/*`), replacing the old direct-to-
+ * Firebase-Storage uploads. Same exported function names/signatures as
+ * before so callers (BrandingEditor, settings, profile, FormRenderer) don't
+ * change.
  */
 
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-} from "firebase/storage";
-import { storage } from "../firebase";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 /**
  * Compress an image file using a canvas element.
@@ -59,34 +54,35 @@ function compressImageToBlob(
   });
 }
 
-/**
- * Build a storage path for branding images.
- *
- * Pattern: workspaces/{workspaceId}/branding/{type}/{timestamp}_{filename}
- */
-function buildBrandingPath(
-  workspaceId: string | undefined,
-  type: "logo" | "hero",
-  fileName: string
-): string {
-  if (!workspaceId) {
-    throw new Error("workspaceId é obrigatório para upload de branding.");
+async function authHeaders(): Promise<Record<string, string>> {
+  if (typeof window === "undefined") return {};
+  const { auth } = await import("../authClient");
+  await auth.authStateReady();
+  const token = await auth.currentUser?.getIdToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function uploadForm(url: string, form: FormData, authed: boolean): Promise<string> {
+  const headers = authed ? await authHeaders() : {};
+  const res = await fetch(url, { method: "POST", body: form, headers });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || "Falha no upload.");
   }
-  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const timestamp = Date.now();
-  return `workspaces/${workspaceId}/branding/${type}/${timestamp}_${safeName}`;
+  const data = await res.json();
+  return data.url as string;
 }
 
 /**
- * Upload a branding image (logo or hero) to Firebase Storage.
+ * Upload a branding image (logo or hero).
  *
  * 1. Compresses the image client-side
- * 2. Uploads to Firebase Storage
- * 3. Returns the public download URL
+ * 2. Uploads via POST /api/uploads/branding
+ * 3. Returns the public URL
  *
  * @param file       - The raw File from the input element
  * @param type       - "logo" or "hero"
- * @param workspaceId - Current workspace ID (optional)
+ * @param workspaceId - Current workspace ID (required)
  * @param maxWidth   - Max pixel width for compression (default: 400 for logo, 1200 for hero)
  */
 export async function uploadBrandingImage(
@@ -95,84 +91,77 @@ export async function uploadBrandingImage(
   workspaceId?: string,
   maxWidth?: number
 ): Promise<string> {
+  if (!workspaceId) {
+    throw new Error("workspaceId é obrigatório para upload de branding.");
+  }
   const defaultMaxWidth = type === "logo" ? 400 : 1200;
   // Hero uses JPEG for real quality compression; logo uses PNG to preserve transparency
   const format = type === "hero" ? "image/jpeg" : "image/png";
   const blob = await compressImageToBlob(file, maxWidth ?? defaultMaxWidth, format);
 
-  const path = buildBrandingPath(workspaceId, type, file.name);
-  const storageRef = ref(storage, path);
-
-  await uploadBytes(storageRef, blob, {
-    contentType: format,
-    cacheControl: "public, max-age=31536000", // 1 year cache
-  });
-
-  return getDownloadURL(storageRef);
+  const form = new FormData();
+  form.append("file", blob, file.name);
+  form.append("kind", type);
+  form.append("workspace_id", workspaceId);
+  return uploadForm(`${API_URL}/api/uploads/branding`, form, true);
 }
 
 /**
- * Upload a user avatar to Firebase Storage.
- * Path: avatars/{uid}/{timestamp}_{filename}
- * Returns the public download URL.
+ * Upload a user avatar. Returns the public URL.
  */
-export async function uploadAvatarImage(file: File, uid: string): Promise<string> {
+export async function uploadAvatarImage(file: File, _uid: string): Promise<string> {
   const blob = await compressImageToBlob(file, 400, "image/jpeg");
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `avatars/${uid}/${Date.now()}_${safeName}`;
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, blob, {
-    contentType: "image/jpeg",
-    cacheControl: "public, max-age=31536000",
-  });
-  return getDownloadURL(storageRef);
+  const form = new FormData();
+  form.append("file", blob, file.name);
+  return uploadForm(`${API_URL}/api/uploads/avatar`, form, true);
 }
 
 /**
- * Delete an image from Firebase Storage by its download URL.
+ * Whether a URL points at a file we uploaded (MinIO, via our own API) rather
+ * than some unrelated external link. Replaces the old
+ * `startsWith("https://firebasestorage")` host sniff.
+ */
+export function isUploadUrl(url: string | undefined | null): boolean {
+  if (!url) return false;
+  return url.startsWith(API_URL) || url.includes("/onb/");
+}
+
+/**
+ * Delete a previously-uploaded image by its URL.
  * Silently ignores errors (e.g. file already deleted, invalid URL).
  */
 export async function deleteStorageImage(url: string): Promise<void> {
   try {
-    // Only attempt delete for Firebase Storage URLs
-    if (!url.includes("firebasestorage.googleapis.com") && !url.includes("storage.googleapis.com")) {
-      return;
-    }
-    const storageRef = ref(storage, url);
-    await deleteObject(storageRef);
+    if (!isUploadUrl(url)) return;
+    const headers = await authHeaders();
+    await fetch(`${API_URL}/api/uploads?url=${encodeURIComponent(url)}`, {
+      method: "DELETE",
+      headers,
+    });
   } catch {
     // Silently ignore — file may already be deleted or URL may be invalid
   }
 }
 
 /**
- * Upload a submission file to Firebase Storage.
+ * Upload a submission file.
  *
  * Used by the public form renderer — does NOT require authentication.
  * Files are stored as-is (no compression) to preserve originals.
  *
- * Path: submissions/{formId}/{fieldId}/{timestamp}_{filename}
- *
  * @param file    - The raw File from the input element
  * @param formId  - The form ID this submission belongs to
  * @param fieldId - The field ID this file was uploaded to
- * @returns The public download URL
+ * @returns The public URL
  */
 export async function uploadSubmissionFile(
   file: File,
   formId: string,
   fieldId: string
 ): Promise<string> {
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const timestamp = Date.now();
-  const path = `submissions/${formId}/${fieldId}/${timestamp}_${safeName}`;
-  const storageRef = ref(storage, path);
-
-  await uploadBytes(storageRef, file, {
-    contentType: file.type || "application/octet-stream",
-    cacheControl: "public, max-age=31536000",
-  });
-
-  return getDownloadURL(storageRef);
+  const form = new FormData();
+  form.append("file", file);
+  form.append("form_id", formId);
+  form.append("field_id", fieldId);
+  return uploadForm(`${API_URL}/api/uploads/submission`, form, false);
 }
-

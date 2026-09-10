@@ -4,10 +4,26 @@ from datetime import datetime
 
 
 class RegisterRequest(BaseModel):
-    firebase_uid: str
     email: str
+    password: str
     display_name: Optional[str] = None
     fingerprint: Optional[str] = None
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user: "UserResponse"
 
 
 class UserResponse(BaseModel):
@@ -21,6 +37,9 @@ class UserResponse(BaseModel):
     subscription_status: Optional[str] = None
     current_period_end: Optional[datetime] = None
     trial_end: Optional[datetime] = None
+
+
+TokenResponse.model_rebuild()
 
 
 class UpdateProfileRequest(BaseModel):
@@ -40,3 +59,17 @@ class PreferencesResponse(BaseModel):
 
 class ReactivateRequest(BaseModel):
     email: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str

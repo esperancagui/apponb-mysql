@@ -4,7 +4,7 @@ import re
 import zipfile
 from urllib.parse import unquote
 
-import requests as _requests
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from typing import Any
@@ -12,7 +12,7 @@ from typing import Any
 from app.core.auth import get_current_user
 from app.core.permissions import require_submission_access
 from app.core.plan_limits import check_response_limit
-from app.services import firestore_db
+from app.services import db as firestore_db
 from app.services.queue import get_pool
 from app.schemas.submission import SubmissionCreate, SubmissionOut
 from app.sockets import broadcaster
@@ -101,26 +101,29 @@ async def download_files_zip(
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
             seen: dict[str, int] = {}
-            for url in all_urls:
-                try:
-                    r = _requests.get(url, timeout=30)
-                    r.raise_for_status()
-                    path_part = url.split("/o/")[1].split("?")[0]
-                    name = unquote(path_part).split("/")[-1]
-                    # Deduplicate filenames
-                    if name in seen:
-                        seen[name] += 1
-                        base, _, ext = name.rpartition(".")
-                        name = (
-                            f"{base}_{seen[name]}.{ext}"
-                            if ext
-                            else f"{name}_{seen[name]}"
-                        )
-                    else:
-                        seen[name] = 0
-                    zf.writestr(name, r.content)
-                except Exception:
-                    pass
+            with httpx.Client(timeout=30) as client:
+                for url in all_urls:
+                    try:
+                        r = client.get(url)
+                        r.raise_for_status()
+                        # Take the last path segment (works for both the old
+                        # Firebase Storage URLs and MinIO object keys — no
+                        # host-specific "/o/" parsing needed).
+                        name = unquote(url.split("?")[0].rstrip("/").split("/")[-1]) or "arquivo"
+                        # Deduplicate filenames
+                        if name in seen:
+                            seen[name] += 1
+                            base, _, ext = name.rpartition(".")
+                            name = (
+                                f"{base}_{seen[name]}.{ext}"
+                                if ext
+                                else f"{name}_{seen[name]}"
+                            )
+                        else:
+                            seen[name] = 0
+                        zf.writestr(name, r.content)
+                    except Exception:
+                        pass
         buf.seek(0)
         return buf
 

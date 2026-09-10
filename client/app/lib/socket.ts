@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import { auth } from "@/app/lib/firebase";
+import { auth } from "@/app/lib/authClient";
 
 let socket: Socket | null = null;
 
@@ -18,7 +18,7 @@ export async function getSocket(): Promise<Socket> {
     reconnectionAttempts: 10,
   });
 
-  // Refresh the Firebase token before each reconnect attempt so the server
+  // Refresh the access token before each reconnect attempt so the server
   // doesn't reject the connection after the token expires (~1h).
   socket.on("reconnect_attempt", async () => {
     try {

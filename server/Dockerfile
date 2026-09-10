@@ -23,4 +23,6 @@ COPY . .
 
 EXPOSE 8000
 
-CMD uv run uvicorn main:socket_app --host 0.0.0.0 --port ${PORT:-8000} --workers 2
+# Single worker: Socket.IO room membership (_uid_sids) and the draft-cleanup
+# loop are in-process state, not shared across workers.
+CMD uv run uvicorn main:socket_app --host 0.0.0.0 --port ${PORT:-8000} --workers 1

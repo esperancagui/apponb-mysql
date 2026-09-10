@@ -16,7 +16,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-import requests as _requests
+import httpx
 from openai import OpenAI
 
 logger = logging.getLogger(__name__)
@@ -185,7 +185,7 @@ def _fetch_file_parts(
         field_label = (field_map or {}).get(field_id, {}).get("label", field_id)
         for url in _to_list(urls):
             try:
-                resp = _requests.get(url, timeout=20)
+                resp = httpx.get(url, timeout=20)
                 resp.raise_for_status()
                 if len(resp.content) > MAX_BYTES:
                     logger.warning("Skipping large file (%d bytes): %s", len(resp.content), url)

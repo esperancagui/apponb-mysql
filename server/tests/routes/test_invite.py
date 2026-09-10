@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime
 from httpx import AsyncClient
 
 pytestmark = pytest.mark.asyncio
@@ -61,7 +62,7 @@ async def test_join_workspace_expired_invite(async_client: AsyncClient, override
         "role": "member",
         "maxUses": 0,
         "useCount": 0,
-        "expiresAt": "2020-01-01T00:00:00+00:00",  # past date
+        "expiresAt": datetime(2020, 1, 1),  # past date
     }
 
     response = await async_client.post("/api/invites/expired_code/accept")
@@ -131,7 +132,7 @@ async def test_get_pending_invites_success(async_client: AsyncClient, override_a
         }
     ]
     mock_firestore.get_workspace.return_value = {"id": "ws_123", "name": "Test WS"}
-    mocker.patch("app.routes.invite.auth_service.get_user_by_firebase_uid", return_value=None)
+    mock_firestore.get_user_by_firebase_uid.return_value = None
 
     response = await async_client.get("/api/invites/pending")
     assert response.status_code == 200

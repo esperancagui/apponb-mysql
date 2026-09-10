@@ -6,7 +6,7 @@ import logging
 import os
 import httpx
 
-from app.services import insight_service, firestore_db
+from app.services import insight_service, db as firestore_db
 
 logger = logging.getLogger(__name__)
 

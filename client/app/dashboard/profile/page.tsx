@@ -31,8 +31,7 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
-import { updateProfile as firebaseUpdateProfile } from "firebase/auth";
-import { auth } from "@/app/lib/firebase";
+import { authClient } from "@/app/lib/authClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -766,7 +765,7 @@ function PlanSection({
           <div className="plan-animate-4 flex items-center justify-between pt-4"
             style={{ borderTop: "1px solid", borderColor: "color-mix(in srgb, currentColor 8%, transparent)" }}>
             <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
-              Gerencie cartão, NF e cancelamento pelo portal Stripe.
+              Gerencie seu plano (versão de testes — sem cobrança real).
             </p>
             <div className="flex items-center gap-3">
               <button onClick={onPortal} disabled={portalLoading}
@@ -965,15 +964,11 @@ export default function ProfilePage() {
       let photoUrl = profile?.photo_url || currentUser.photoURL || "";
       if (avatarFile)
         photoUrl = await uploadAvatarImage(avatarFile, currentUser.uid);
-      await firebaseUpdateProfile(auth.currentUser!, {
-        displayName: displayName.trim() || null,
-        photoURL: photoUrl || null,
-      });
       await userService.updateProfile({
         display_name: displayName.trim() || undefined,
         photo_url: photoUrl || undefined,
       });
-      await auth.currentUser?.reload();
+      await currentUser.reload();
       setAvatarFile(null);
       toast.success("Perfil atualizado!");
     } catch (err: unknown) {
@@ -1014,33 +1009,15 @@ export default function ProfilePage() {
     }
     setIsChangingPassword(true);
     try {
-      const {
-        EmailAuthProvider,
-        reauthenticateWithCredential,
-        updatePassword,
-      } = await import("firebase/auth");
-      const credential = EmailAuthProvider.credential(
-        currentUser!.email!,
-        currentPassword,
-      );
-      await reauthenticateWithCredential(auth.currentUser!, credential);
-      await updatePassword(auth.currentUser!, newPassword);
+      await authClient.changePassword(currentPassword, newPassword);
       toast.success("Senha alterada com sucesso!");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: unknown) {
-      const code = (err as { code?: string }).code;
-      if (
-        code === "auth/wrong-password" ||
-        code === "auth/invalid-credential"
-      ) {
-        toast.error("Senha atual incorreta.");
-      } else {
-        toast.error(
-          err instanceof Error ? err.message : "Erro ao alterar senha.",
-        );
-      }
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao alterar senha.",
+      );
     } finally {
       setIsChangingPassword(false);
     }

@@ -7,7 +7,7 @@ from app.core.permissions import (
     require_form_member_access,
     require_workspace_member,
 )
-from app.services import firestore_db
+from app.services import db as firestore_db
 from app.schemas.form import FormCreate, FormUpdate, FormOut
 from app.schemas.submission import SubmissionOut
 

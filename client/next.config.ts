@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["firebase", "@firebase", "jszip"],
+  transpilePackages: ["jszip"],
 };
 
 export default nextConfig;

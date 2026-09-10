@@ -17,11 +17,12 @@ from app.routes import insight as insight_routes
 from app.routes import folder as folder_routes
 from app.routes import invite as invite_routes
 from app.routes import billing as billing_routes
-from app.routes import webhooks as webhook_routes
+from app.routes import upload as upload_routes
 from app.routes import internal as internal_routes
 from app.sockets import sio
 from app.sockets.events import register_handlers
-from app.services import firestore_db, auth_service
+from app.db.pool import init_pool, close_pool
+from app.services import db as firestore_db, auth_service, storage_service
 from app.services import queue as queue_service
 
 base_dir = Path(__file__).resolve().parent
@@ -51,10 +52,13 @@ async def lifespan(app: FastAPI):
     )
     arq_pool = await create_pool(redis_settings)
     queue_service.set_pool(arq_pool)
+    await init_pool()
+    await asyncio.to_thread(storage_service.ensure_bucket)
     task = asyncio.create_task(_draft_cleanup_loop())
     yield
     task.cancel()
     await arq_pool.aclose()
+    await close_pool()
 
 
 app = FastAPI(
@@ -84,7 +88,7 @@ app.include_router(insight_routes.router, prefix="/api", tags=["insights"])
 app.include_router(folder_routes.router, prefix="/api", tags=["folders"])
 app.include_router(invite_routes.router, prefix="/api", tags=["invites"])
 app.include_router(billing_routes.router, prefix="/api/billing", tags=["billing"])
-app.include_router(webhook_routes.router, prefix="/api/webhooks", tags=["webhooks"])
+app.include_router(upload_routes.router, prefix="/api", tags=["uploads"])
 app.include_router(internal_routes.router, prefix="/internal", include_in_schema=False)
 
 register_handlers()
@@ -104,10 +108,7 @@ async def _draft_cleanup_loop():
                 print(f"[cleanup] Removed {deleted_drafts} inactive draft form(s)")
 
             # 2. Clean up expired tokens in blacklist
-            # Call synchronous firestore method via to_thread
-            deleted_tokens = await asyncio.to_thread(
-                auth_service.cleanup_expired_tokens
-            )
+            deleted_tokens = await auth_service.cleanup_expired_tokens()
             if deleted_tokens:
                 print(
                     f"[cleanup] Removed {deleted_tokens} expired token(s) from blacklist"

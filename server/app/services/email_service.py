@@ -144,3 +144,45 @@ def send_data_export_email(
         return True
     except Exception:
         return False
+
+
+def send_password_reset_email(to_email: str, reset_url: str) -> bool:
+    """Send a password reset email via Resend. Returns True if sent successfully."""
+    if not _get_client():
+        return False
+
+    html = f"""
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;">
+  <div style="text-align:center;margin-bottom:24px;">
+    <span style="font-size:20px;font-weight:800;color:#18181b;">onb.</span>
+  </div>
+  <div style="background:#ffffff;border:1px solid #e4e4e7;border-radius:16px;padding:32px 24px;text-align:center;">
+    <h2 style="font-size:18px;font-weight:700;color:#18181b;margin:0 0 12px;">Redefinir senha</h2>
+    <p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 20px;">
+      Recebemos um pedido para redefinir a senha da sua conta onb. Se foi você, clique no botão abaixo.
+    </p>
+    <a href="{reset_url}"
+       style="display:inline-block;padding:12px 32px;background:#6366f1;color:#ffffff;
+              border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;">
+      Redefinir senha
+    </a>
+    <p style="color:#a1a1aa;font-size:12px;margin-top:20px;">
+      O link expira em 2 horas. Se você não pediu isso, pode ignorar este e-mail com segurança.
+    </p>
+  </div>
+  <p style="text-align:center;color:#d4d4d8;font-size:10px;margin-top:20px;">
+    Powered by onb.
+  </p>
+</div>
+"""
+
+    try:
+        resend.Emails.send({
+            "from": SENDER,
+            "to": [to_email],
+            "subject": "Redefinir sua senha — onb.",
+            "html": html,
+        })
+        return True
+    except Exception:
+        return False

@@ -35,7 +35,7 @@ async def test_analyze_submission_success(
         "prompt",  # raw_prompt
         "response",  # raw_response
     )
-    mocker.patch("app.routes.insight.ai_service", mock_ai)
+    mocker.patch("app.services.insight_service.ai_service", mock_ai)
 
     # 4. Mock the saved DB result
     mock_firestore.create_insight.return_value = {

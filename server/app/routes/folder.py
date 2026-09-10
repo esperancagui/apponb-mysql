@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.core.auth import get_current_user
 from app.core.permissions import require_workspace_owner, require_workspace_member, require_form_write
-from app.services import firestore_db
+from app.services import db as firestore_db
 
 router = APIRouter()
 

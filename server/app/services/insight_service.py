@@ -4,7 +4,7 @@ Does NOT call broadcaster; that is the caller's responsibility.
 """
 
 import logging
-from app.services import firestore_db, ai_service, gemini_service
+from app.services import db as firestore_db, ai_service, gemini_service
 
 logger = logging.getLogger(__name__)
 

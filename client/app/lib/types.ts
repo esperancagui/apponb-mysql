@@ -227,7 +227,7 @@ export interface InboxItem {
   vip: boolean;
   aiInsightId?: string;
   data?: Record<string, any>; // raw submission answers
-  files?: Record<string, string[]>; // field ID → array of Firebase Storage URLs
+  files?: Record<string, string[]>; // field ID → array of uploaded file URLs
   formGroups?: FieldGroup[]; // snapshotted form field definitions (when form is deleted)
 }
 

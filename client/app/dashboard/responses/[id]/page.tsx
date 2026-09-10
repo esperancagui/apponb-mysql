@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { submissionService, formService, insightService } from "@/app/lib/services";
+import { isUploadUrl } from "@/app/lib/services/storageService";
 import type { AIInsight, RedFlagEstrategica, Form, InboxItem, InboxStatus } from "@/app/lib/types";
 import { RISK_MAP } from "@/app/lib/risk";
 import { formatDistanceToNow, format } from "date-fns";
@@ -375,7 +376,7 @@ export default function ResponseDetailsPage({ params }: { params: Promise<{ id: 
   async function handleExportPDF() {
     setIsExportingPDF(true);
     try {
-      const { auth } = await import("@/app/lib/firebase");
+      const { auth } = await import("@/app/lib/authClient");
       await auth.authStateReady();
       const token = await auth.currentUser?.getIdToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
@@ -404,7 +405,7 @@ export default function ResponseDetailsPage({ params }: { params: Promise<{ id: 
     if (!inboxItem?.files) return;
     setIsDownloadingZip(true);
     try {
-      const { auth } = await import("@/app/lib/firebase");
+      const { auth } = await import("@/app/lib/authClient");
       await auth.authStateReady();
       const token = await auth.currentUser?.getIdToken();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
@@ -1248,10 +1249,10 @@ export default function ResponseDetailsPage({ params }: { params: Promise<{ id: 
                   const flatEntries = Object.entries(answers).filter(([, value]) => {
                     if (
                       Array.isArray(value) &&
-                      value.every((v) => typeof v === "string" && v.startsWith("https://firebasestorage"))
+                      value.every((v) => typeof v === "string" && isUploadUrl(v))
                     )
                       return false;
-                    if (typeof value === "string" && value.startsWith("https://firebasestorage")) return false;
+                    if (typeof value === "string" && isUploadUrl(value)) return false;
                     return true;
                   });
                   return (

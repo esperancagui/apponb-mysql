@@ -6,12 +6,9 @@ from datetime import datetime, timedelta, timezone
 from app.core.auth import get_current_user
 from app.core.permissions import require_workspace_owner
 from app.core.plan_limits import check_member_limit
-from app.core.firebase import firebase_auth
-from app.services import firestore_db
+from app.services import db as firestore_db
 from app.services import email_service
-from app.services import auth_service
 from app.sockets import broadcaster
-import asyncio
 import os
 
 router = APIRouter()
@@ -21,16 +18,10 @@ VALID_DURATIONS = {"1h": 1, "24h": 24, "7d": 168, "30d": 720}  # hours
 
 
 def _is_expired(invite: dict) -> bool:
-    expires_at_str = invite.get("expiresAt")
-    if not expires_at_str:
+    expires_at = invite.get("expiresAt")
+    if not expires_at:
         return False
-    try:
-        expires_at = datetime.fromisoformat(expires_at_str)
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        return datetime.now(timezone.utc) > expires_at
-    except (ValueError, TypeError):
-        return False
+    return datetime.now(timezone.utc).replace(tzinfo=None) > expires_at
 
 
 class InviteCreate(BaseModel):
@@ -65,25 +56,24 @@ async def create_invite(
             detail=f"Duração inválida. Use: {', '.join(VALID_DURATIONS.keys())}",
         )
 
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=hours)
+    expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=hours)
 
     invite_data = {
         "workspaceId": workspace_id,
         "role": body.role,
         "createdBy": current_user.get("firebase_uid"),
-        "expiresAt": expires_at.isoformat(),
+        "expiresAt": expires_at,
         "maxUses": body.maxUses,
     }
 
     # Resolve email to UID for targeted invite
     invited_uid: Optional[str] = None
     if body.email:
-        try:
-            invited_user = firebase_auth.get_user_by_email(body.email)
-            invited_uid = invited_user.uid
+        invited_user = await firestore_db.get_user_by_email(body.email)
+        if invited_user:
+            invited_uid = invited_user["firebase_uid"]
             invite_data["invitedUid"] = invited_uid
-        except Exception:
-            pass  # Email not found — still create invite, will notify via email only
+        # Email not found — still create invite, will notify via email only
 
     invite = await firestore_db.create_workspace_invite(invite_data)
 
@@ -171,7 +161,7 @@ async def get_pending_invites(
         created_by = inv.get("createdBy")
         if created_by:
             try:
-                inviter = await asyncio.to_thread(auth_service.get_user_by_firebase_uid, created_by)
+                inviter = await firestore_db.get_user_by_firebase_uid(created_by)
                 if inviter:
                     inviter_photo = inviter.get("photo_url") or ""
                     inviter_name = inviter.get("display_name") or ""

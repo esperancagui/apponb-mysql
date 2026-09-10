@@ -128,11 +128,10 @@ async def test_get_members_non_owner_forbidden(async_client: AsyncClient, overri
 
 # ── POST /workspaces/{id}/members ──────────────────────────────────────────────
 
-async def test_add_member_success(async_client: AsyncClient, override_auth, mock_firestore, mocker):
-    mock_fb_user = MagicMock()
-    mock_fb_user.uid = "new_member_uid"
-    mock_fb_user.email = "newmember@example.com"
-    mocker.patch("app.routes.workspace.firebase_auth_admin.get_user_by_email", return_value=mock_fb_user)
+async def test_add_member_success(async_client: AsyncClient, override_auth, mock_firestore):
+    mock_firestore.get_user_by_email.return_value = {
+        "firebase_uid": "new_member_uid", "email": "newmember@example.com",
+    }
 
     response = await async_client.post(
         "/api/workspaces/ws_123/members",
@@ -143,12 +142,11 @@ async def test_add_member_success(async_client: AsyncClient, override_auth, mock
     mock_firestore.add_workspace_member.assert_called_once_with("ws_123", "new_member_uid", "member")
 
 
-async def test_add_member_duplicate(async_client: AsyncClient, override_auth, mock_firestore, mocker):
+async def test_add_member_duplicate(async_client: AsyncClient, override_auth, mock_firestore):
     """Cannot add a member who is already in the workspace → 409."""
-    mock_fb_user = MagicMock()
-    mock_fb_user.uid = "existing_uid"
-    mock_fb_user.email = "existing@example.com"
-    mocker.patch("app.routes.workspace.firebase_auth_admin.get_user_by_email", return_value=mock_fb_user)
+    mock_firestore.get_user_by_email.return_value = {
+        "firebase_uid": "existing_uid", "email": "existing@example.com",
+    }
     mock_firestore.get_workspace_members.return_value = [
         {"uid": "existing_uid", "role": "member"}
     ]
@@ -161,13 +159,9 @@ async def test_add_member_duplicate(async_client: AsyncClient, override_auth, mo
     mock_firestore.add_workspace_member.assert_not_called()
 
 
-async def test_add_member_user_not_found(async_client: AsyncClient, override_auth, mock_firestore, mocker):
-    """Email not registered in Firebase → 404."""
-    from firebase_admin import auth as fb_auth_mod
-    mocker.patch(
-        "app.routes.workspace.firebase_auth_admin.get_user_by_email",
-        side_effect=fb_auth_mod.UserNotFoundError("not found"),
-    )
+async def test_add_member_user_not_found(async_client: AsyncClient, override_auth, mock_firestore):
+    """Email not registered → 404."""
+    mock_firestore.get_user_by_email.return_value = None
 
     response = await async_client.post(
         "/api/workspaces/ws_123/members",
@@ -176,11 +170,8 @@ async def test_add_member_user_not_found(async_client: AsyncClient, override_aut
     assert response.status_code == 404
 
 
-async def test_add_member_invalid_role(async_client: AsyncClient, override_auth, mock_firestore, mocker):
-    mock_fb_user = MagicMock()
-    mock_fb_user.uid = "uid_x"
-    mock_fb_user.email = "x@example.com"
-    mocker.patch("app.routes.workspace.firebase_auth_admin.get_user_by_email", return_value=mock_fb_user)
+async def test_add_member_invalid_role(async_client: AsyncClient, override_auth, mock_firestore):
+    mock_firestore.get_user_by_email.return_value = {"firebase_uid": "uid_x", "email": "x@example.com"}
 
     response = await async_client.post(
         "/api/workspaces/ws_123/members",
@@ -209,4 +200,3 @@ async def test_remove_owner_blocked(async_client: AsyncClient, override_auth, mo
     mock_firestore.remove_workspace_member.assert_not_called()
 
 
-from unittest.mock import MagicMock

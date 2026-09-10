@@ -20,7 +20,7 @@ Manage workspace / members      |  ✅   |  ❌   |   ❌   |   ❌
 
 from fastapi import HTTPException, status
 
-from app.services import firestore_db
+from app.services import db as firestore_db
 
 # Lower index = lower privilege
 ROLE_WEIGHTS: dict[str, int] = {

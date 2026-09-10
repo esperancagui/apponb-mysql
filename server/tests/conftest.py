@@ -74,8 +74,11 @@ def mock_firestore(mocker, mock_auth_user):
     # 0 members and 0 responses (below limits)
     mock_db.count_workspace_members.return_value = 0
     mock_db.count_monthly_submissions.return_value = 0
+    # No email collision by default (registration tests)
+    mock_db.get_user_by_email.return_value = None
 
-    # ── Patch every module that imports firestore_db ───────────────────────────
+    # ── Patch every module that imports the MySQL data layer (still aliased
+    # `firestore_db` at the import site — see app/services/db.py's docstring) ──
     for target in [
         "app.core.permissions.firestore_db",
         "app.core.plan_limits.firestore_db",
@@ -85,7 +88,8 @@ def mock_firestore(mocker, mock_auth_user):
         "app.routes.inbox.firestore_db",
         "app.routes.invite.firestore_db",
         "app.routes.insight.firestore_db",
-        "app.routes.auth.firestore_db",
+        "app.services.insight_service.firestore_db",
+        "app.routes.auth.db",
     ]:
         mocker.patch(target, mock_db)
 

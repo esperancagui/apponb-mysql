@@ -7,8 +7,8 @@ const AUTH_PATHS = ["/login", "/register", "/forgot-password"];
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Firebase Auth state lives entirely client-side; we use a session cookie
-  // (__session) that AuthContext writes on login to enable server-side route guarding.
+  // Auth state lives entirely client-side; we use a session cookie (__session)
+  // that authClient writes on login to enable server-side route guarding.
   const sessionCookie = request.cookies.get("__session")?.value;
   const isAuthenticated = Boolean(sessionCookie);
 

@@ -1,0 +1,576 @@
+/* ─── onb. Intelligence Report ─────────────────────────────────────────────── */
+/* Google Fonts — carregado apenas se houver acesso à internet no servidor */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Mono:wght@400;500&display=swap');
+
+:root {
+  --black:      #09090b;
+  --zinc-900:   #18181b;
+  --zinc-800:   #27272a;
+  --zinc-700:   #3f3f46;
+  --zinc-600:   #52525b;
+  --zinc-500:   #71717a;
+  --zinc-400:   #a1a1aa;
+  --zinc-300:   #d4d4d8;
+  --zinc-200:   #e4e4e7;
+  --zinc-100:   #f4f4f5;
+  --zinc-50:    #fafafa;
+  --white:      #ffffff;
+  --blue:       #5fbcff;
+  --blue-dim:   #f0f9ff;
+  --blue-mid:   #bae6fd;
+  --blue-text:  #0369a1;
+  --green:      #10b981;
+  --green-bg:   #ecfdf5;
+  --green-text: #065f46;
+  --amber:      #f59e0b;
+  --amber-bg:   #fffbeb;
+  --amber-text: #78350f;
+  --red:        #ef4444;
+  --red-bg:     #fef2f2;
+  --red-text:   #991b1b;
+  --orange:     #f97316;
+  --orange-bg:  #fff7ed;
+  --orange-text:#9a3412;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ─── Page ───────────────────────────────────────────────────────────────── */
+
+@page {
+  size: A4;
+  margin: 22mm 20mm 18mm 20mm;
+  @bottom-left {
+    content: "onb. · Relatório Estratégico Confidencial";
+    font-family: 'Roboto', sans-serif;
+    font-size: 7pt;
+    font-weight: 500;
+    color: #a1a1aa;
+  }
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font-family: 'Roboto Mono', monospace;
+    font-size: 7pt;
+    color: #a1a1aa;
+  }
+}
+
+@page :first {
+  margin: 0;
+  @bottom-left  { content: ""; }
+  @bottom-right { content: ""; }
+}
+
+body {
+  font-family: 'Roboto', Arial, 'Helvetica Neue', Helvetica, sans-serif;
+  font-size: 10pt;
+  line-height: 1.65;
+  color: var(--zinc-900);
+  background: var(--white);
+}
+
+.clearfix { clear: both; }
+
+/* ─── Cover ──────────────────────────────────────────────────────────────── */
+
+.cover {
+  height: 297mm;
+  overflow: hidden;
+  background: var(--white);
+  page-break-after: always;
+  display: flex;
+  flex-direction: column;
+}
+
+.cover-top-bar {
+  background: var(--blue);
+  height: 4pt;
+  flex-shrink: 0;
+}
+
+.cover-content {
+  padding: 12mm 22mm 10mm 22mm;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header: logo + metadata ── */
+
+.cover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16pt;
+}
+
+.cover-header-logo { flex-shrink: 0; }
+
+.cover-header-right {
+  text-align: right;
+  padding-top: 10pt;
+}
+
+.cover-type-label {
+  font-size: 6.5pt;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--zinc-400);
+}
+
+.cover-type-date {
+  font-size: 7pt;
+  color: var(--zinc-400);
+  margin-top: 3pt;
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* ── Horizontal rule after header ── */
+
+.cover-rule {
+  height: 1pt;
+  background: var(--zinc-200);
+  margin-bottom: 30pt;
+}
+
+/* ── Client title area ── */
+
+.cover-eyebrow {
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--zinc-400);
+  margin-bottom: 9pt;
+}
+
+.cover-client {
+  font-size: 54pt;
+  font-weight: 900;
+  color: var(--zinc-900);
+  letter-spacing: -2.5px;
+  line-height: 0.95;
+  margin-bottom: 12pt;
+  word-break: break-word;
+}
+
+.cover-formname {
+  font-size: 12pt;
+  font-weight: 300;
+  color: var(--zinc-500);
+  margin-bottom: 26pt;
+  letter-spacing: 0.1px;
+}
+
+/* ── Meta — three blocks separated by thin rules ── */
+
+.cover-meta {
+  display: flex;
+  gap: 0;
+}
+
+.cover-meta-block {
+  flex: 0 0 auto;
+  padding-right: 20pt;
+  margin-right: 20pt;
+  border-right: 1pt solid var(--zinc-200);
+}
+
+.cover-meta-block:last-child {
+  border-right: none;
+  padding-right: 0;
+  margin-right: 0;
+}
+
+.cover-meta-label {
+  font-size: 6pt;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--zinc-400);
+  margin-bottom: 4pt;
+}
+
+.cover-meta-value {
+  font-size: 9.5pt;
+  font-weight: 600;
+  color: var(--zinc-700);
+}
+
+/* ── Spacer — editorial breathing room ── */
+
+.cover-spacer { flex: 1; }
+
+/* ── Score hero — bottom editorial anchor ── */
+
+.cover-score-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-top: 1pt solid var(--zinc-200);
+  padding-top: 16pt;
+}
+
+.cover-score-hero-left {
+  flex-shrink: 0;
+  padding-bottom: 6pt;
+}
+
+.cover-score-hero-label {
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--zinc-400);
+  margin-bottom: 5pt;
+}
+
+.cover-score-hero-class {
+  font-size: 11pt;
+  font-weight: 500;
+  color: var(--zinc-600);
+  letter-spacing: 0.2px;
+}
+
+.cover-score-hero-right {
+  text-align: right;
+  line-height: 1;
+}
+
+.cover-score-num {
+  font-size: 52pt;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+.cover-score-num.score-high   { color: var(--green); }
+.cover-score-num.score-medium { color: var(--amber); }
+.cover-score-num.score-low    { color: var(--red); }
+
+.cover-score-den {
+  font-size: 16pt;
+  font-weight: 300;
+  color: var(--zinc-300);
+  vertical-align: bottom;
+  margin-left: 2pt;
+  letter-spacing: 0;
+}
+
+/* ── Footer — pinned to bottom ── */
+
+.cover-footer {
+  flex-shrink: 0;
+  padding: 8pt 22mm;
+  border-top: 1pt solid var(--zinc-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cover-footer-left {
+  font-size: 7pt;
+  color: var(--zinc-400);
+  letter-spacing: 0.3px;
+}
+
+.cover-footer-right {
+  font-size: 7pt;
+  font-family: 'Roboto Mono', monospace;
+  color: var(--zinc-400);
+}
+
+/* ─── Status badges ──────────────────────────────────────────────────────── */
+
+.status-badge {
+  display: inline-block;
+  padding: 2.5pt 8pt;
+  border-radius: 4pt;
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: var(--zinc-100);
+  color: var(--zinc-600);
+}
+
+.status-aprovado, .status-bom, .status-ready, .status-excelente
+  { background: var(--green-bg); color: var(--green-text); }
+.status-atencao, .status-revision, .status-revisar, .status-moderado
+  { background: var(--amber-bg); color: var(--amber-text); }
+.status-risco, .status-critico, .status-risk, .status-alto-risco
+  { background: var(--red-bg); color: var(--red-text); }
+
+/* ─── Content sections ───────────────────────────────────────────────────── */
+
+.section {
+  margin-top: 20pt;
+  page-break-inside: avoid;
+}
+
+.section-label {
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--zinc-400);
+  padding-bottom: 6pt;
+  border-bottom: 1pt solid var(--zinc-200);
+  margin-bottom: 9pt;
+}
+
+.section-body {
+  font-size: 9.5pt;
+  color: var(--zinc-700);
+  line-height: 1.72;
+}
+
+/* ─── Headline — blue accent ────────────────────────────────────────────── */
+
+.headline-card {
+  margin-top: 18pt;
+  padding: 13pt 15pt;
+  background: var(--blue-dim);
+  border-left: 4pt solid var(--blue);
+  border-radius: 0 8pt 8pt 0;
+  page-break-inside: avoid;
+}
+
+.headline-eyebrow {
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--blue-text);
+  margin-bottom: 5pt;
+}
+
+.headline-text {
+  font-size: 13pt;
+  font-weight: 700;
+  color: var(--zinc-900);
+  line-height: 1.35;
+}
+
+/* ─── Score ──────────────────────────────────────────────────────────────── */
+
+.score-section {
+  margin-top: 20pt;
+  page-break-inside: avoid;
+}
+
+.score-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 6pt;
+  border-bottom: 1pt solid var(--zinc-200);
+  margin-bottom: 10pt;
+}
+
+.score-label-left {
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--zinc-400);
+  padding-bottom: 2pt;
+}
+
+.score-right { text-align: right; }
+
+.score-number {
+  font-size: 28pt;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.score-number.score-high   { color: var(--green); }
+.score-number.score-medium { color: var(--amber); }
+.score-number.score-low    { color: var(--red); }
+
+.score-denom {
+  font-size: 10pt;
+  font-weight: 600;
+  color: var(--zinc-400);
+  vertical-align: bottom;
+}
+
+.score-class {
+  font-size: 7pt;
+  font-weight: 600;
+  color: var(--zinc-500);
+  margin-top: 1pt;
+}
+
+.score-body { padding: 0; }
+
+.score-bar-track {
+  height: 3pt;
+  background: var(--zinc-200);
+  border-radius: 999pt;
+  margin-bottom: 10pt;
+}
+
+.score-bar-fill { height: 100%; border-radius: 999pt; }
+.score-bar-high   { background: var(--green); }
+.score-bar-medium { background: var(--amber); }
+.score-bar-low    { background: var(--red); }
+
+.score-analysis {
+  font-size: 9.5pt;
+  color: var(--zinc-700);
+  line-height: 1.7;
+}
+
+/* ─── Red flags ──────────────────────────────────────────────────────────── */
+
+.red-flag {
+  margin-top: 7pt;
+  border-radius: 8pt;
+  overflow: hidden;
+  page-break-inside: avoid;
+}
+
+.red-flag-top {
+  padding: 8pt 11pt;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.red-flag.severity-alta  .red-flag-top { background: var(--red-bg);    border-left: 3pt solid var(--red); }
+.red-flag.severity-media .red-flag-top { background: var(--orange-bg); border-left: 3pt solid var(--orange); }
+.red-flag.severity-baixa .red-flag-top { background: var(--amber-bg);  border-left: 3pt solid var(--amber); }
+
+.red-flag-title { font-size: 9.5pt; font-weight: 700; color: var(--zinc-900); }
+
+.severity-badge {
+  font-size: 6.5pt;
+  font-weight: 800;
+  padding: 2pt 6pt;
+  border-radius: 4pt;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.severity-alta  .severity-badge { background: #fecaca; color: var(--red-text); }
+.severity-media .severity-badge { background: #fed7aa; color: var(--orange-text); }
+.severity-baixa .severity-badge { background: #fde68a; color: var(--amber-text); }
+
+.red-flag-details {
+  padding: 8pt 11pt 9pt 14pt;
+  background: var(--white);
+  border: 1pt solid var(--zinc-200);
+  border-top: none;
+  border-radius: 0 0 8pt 8pt;
+}
+
+.red-flag-row {
+  display: flex;
+  gap: 8pt;
+  margin-top: 4pt;
+  font-size: 8.5pt;
+  line-height: 1.5;
+}
+.red-flag-key {
+  flex: 0 0 40pt;
+  font-weight: 700;
+  font-size: 7.5pt;
+  color: var(--zinc-500);
+  padding-top: 0.5pt;
+}
+.red-flag-val {
+  flex: 1;
+  color: var(--zinc-700);
+}
+
+/* ─── Kickoff ─────────────────────────────────────────────────────────────── */
+
+.kickoff-list { margin-top: 9pt; }
+
+.kickoff-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7pt;
+  margin-bottom: 5pt;
+  background: var(--zinc-50);
+  border: 1pt solid var(--zinc-200);
+  border-radius: 6pt;
+  padding: 7pt 10pt;
+  page-break-inside: avoid;
+}
+
+.kickoff-num {
+  flex-shrink: 0;
+  width: 15pt;
+  height: 15pt;
+  background: var(--blue);
+  color: var(--zinc-900);
+  font-size: 7pt;
+  font-weight: 800;
+  border-radius: 4pt;
+  text-align: center;
+  line-height: 15pt;
+  margin-top: 0.5pt;
+}
+
+.kickoff-q {
+  font-size: 9pt;
+  color: var(--zinc-700);
+  line-height: 1.5;
+}
+
+/* ─── Next action ─────────────────────────────────────────────────────────── */
+
+.next-action {
+  margin-top: 18pt;
+  padding: 13pt 15pt;
+  background: var(--blue-dim);
+  border: 1pt solid var(--blue-mid);
+  border-left: 4pt solid var(--blue);
+  border-radius: 0 10pt 10pt 0;
+  page-break-inside: avoid;
+}
+
+.next-action-label {
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--blue-text);
+  margin-bottom: 6pt;
+}
+
+.next-action-body {
+  font-size: 10pt;
+  font-weight: 600;
+  color: var(--zinc-900);
+  line-height: 1.6;
+}
+
+/* ─── Logo fills (override SVG presentation attributes via CSS) ──────────── */
+
+.cover-header-logo svg path { fill: var(--blue); }
+.footer-logo svg path        { fill: var(--zinc-900); }
+
+/* ─── Footer ─────────────────────────────────────────────────────────────── */
+
+.footer {
+  margin-top: 26pt;
+  padding-top: 11pt;
+  border-top: 1pt solid var(--zinc-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-logo { flex-shrink: 0; }
+
+.footer-right { text-align: right; }
+
+.footer-text { font-size: 7.5pt; color: var(--zinc-400); line-height: 1.5; }
+.footer-text strong { font-weight: 600; color: var(--zinc-500); }

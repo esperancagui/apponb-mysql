@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Node.js
+node_modules
+client/node_modules
+client/.next
+client/.turbo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv
+server/.venv
+*.egg-info
+.pytest_cache
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose*.yml
+
+# Docs
+docs
+README.md
+ROTAS_IMPLEMENTACAO.md
+
+# Firebase credentials (handled via volume/env)
+firebase-credentials.json
